@@ -1,0 +1,14 @@
+@Configuration
+@EnableAsync
+public class ApplicationSpringAsyncConfig implements AsyncConfigurer {
+
+    @Override
+    public Executor getAsyncExecutor() {
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setMaxPoolSize(15);
+        executor.setCorePoolSize(15);
+        executor.initialize();
+        return executor;
+    }
+
+}
