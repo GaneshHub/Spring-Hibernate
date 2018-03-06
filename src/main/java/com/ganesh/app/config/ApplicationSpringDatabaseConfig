@@ -1,0 +1,90 @@
+package com.ganesh.app.config;
+
+import java.io.IOException;
+import java.util.Properties;
+
+import javax.sql.DataSource;
+
+import org.apache.commons.dbcp.BasicDataSource;
+import org.hibernate.SessionFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.config.PropertiesFactoryBean;
+import org.springframework.context.ApplicationContextException;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.core.env.Environment;
+import org.springframework.orm.hibernate3.HibernateTemplate;
+import org.springframework.orm.hibernate3.LocalSessionFactoryBean;
+
+@Configuration
+public class ApplicationSpringDatabaseConfig {
+
+    private static final int MILLIS_PER_MINUTE = 60 * 1000;
+
+    @Autowired
+    private Environment env;
+
+    @Bean(destroyMethod = "close")
+    public DataSource dataSource() {
+        BasicDataSource dataSource = new BasicDataSource();
+        dataSource.setDriverClassName("oracle.jdbc.driver.OracleDriver");
+        dataSource.setUrl(env.getProperty("oracle.database.url"));
+        dataSource.setUsername(env.getProperty("oracle.database.user"));
+        dataSource.setPassword(env.getProperty("oracle.database.password"));
+        dataSource.setMaxIdle(5);
+        dataSource.setMaxActive(20);
+        dataSource.setMaxWait(1000);
+        dataSource.setValidationQuery("select * from dual");
+        dataSource.setTestOnBorrow(false);
+        dataSource.setTestWhileIdle(true);
+        dataSource.setTimeBetweenEvictionRunsMillis(20 * MILLIS_PER_MINUTE);
+        dataSource.setMinEvictableIdleTimeMillis(30 * MILLIS_PER_MINUTE);
+        dataSource.setNumTestsPerEvictionRun(5);
+        dataSource.setDefaultAutoCommit(false);
+        return dataSource;
+    }
+
+    @Bean
+    public Properties hibernateProperties() {
+        PropertiesFactoryBean hibernatePropertiesFactoryBean = new PropertiesFactoryBean();
+        Properties properties = new Properties();
+        properties.setProperty("hibernate.dialect", "org.hibernate.dialect.Oracle10gDialect");
+        properties.setProperty("hibernate.show_sql", "true");
+        properties.setProperty("hibernate.query.factory_class", "org.hibernate.hql.classic.ClassicQueryTranslatorFactory");
+        hibernatePropertiesFactoryBean.setProperties(properties);
+
+        Properties hibernateProperties = null;
+        try {
+            hibernatePropertiesFactoryBean.afterPropertiesSet();
+            hibernateProperties = hibernatePropertiesFactoryBean.getObject();
+        } catch (IOException e) {
+            throw new ApplicationContextException("Error creating hibernate properties", e);
+        }
+        return hibernateProperties;
+
+    }
+
+    @Bean
+    public SessionFactory mySessionFactory() {
+        LocalSessionFactoryBean sessionFactory = new LocalSessionFactoryBean();
+        sessionFactory.setDataSource(dataSource());
+        sessionFactory.setHibernateProperties(hibernateProperties());
+        String[] mappingResources = new String[] { "/hibernate/EmployeeData.hbm.xml", "/hibernate/InterpretationApplication.hbm.xml",
+                "/hibernate/Regulation.hbm.xml", "/hibernate/NotificationTemplate.hbm.xml" };
+        sessionFactory.setMappingResources(mappingResources);
+        try {
+            sessionFactory.afterPropertiesSet();
+        } catch (Exception e) {
+            throw new ApplicationContextException("Failed to create session factory", e);
+        }
+        return sessionFactory.getObject();
+    }
+
+    @Bean
+    public HibernateTemplate hibernateTemplate() {
+        HibernateTemplate hibernateTemplate = new HibernateTemplate(mySessionFactory());
+        hibernateTemplate.afterPropertiesSet();
+        return hibernateTemplate;
+    }
+
+}
