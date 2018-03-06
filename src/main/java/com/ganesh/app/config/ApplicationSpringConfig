@@ -1,0 +1,39 @@
+package com.uprr.app.cpm.config;
+
+import java.io.IOException;
+import java.util.HashMap;
+import java.util.Map;
+
+import javax.sql.DataSource;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.ApplicationContextException;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.ImportResource;
+import org.springframework.context.annotation.PropertySource;
+import org.springframework.context.support.PropertySourcesPlaceholderConfigurer;
+
+@Configuration
+@Import({ ApplicationSpringDatabaseConfig.class, ApplicationSpringAsyncConfig.class, ApplicationSpringCodeDaoConfig.class })
+@PropertySource({ "classpath:/${ganesh.implementation.environment}.properties" })
+@ImportResource({ "spring/applicationContext-transaction.xml", "spring/applicationContext-xmf.xml" })
+@ComponentScan(basePackages = "com.ganesh.app")
+public class ApplicationSpringConfig {
+
+    @Bean
+    public PropertySourcesPlaceholderConfigurer propertyConfigurer() {
+        return new PropertySourcesPlaceholderConfigurer();
+    }
+
+    @Bean
+    @Autowired
+    public DataSourceResourceLoader dataSourceResourceLoader(DataSource dataSource) {
+        DataSourceResourceLoader loader = new DataSourceResourceLoader();
+        loader.setDataSource(dataSource);
+        return loader;
+    }
+
+}
